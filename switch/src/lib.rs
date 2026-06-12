@@ -22,6 +22,32 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 static WEB_DIR: Dir = include_dir!("./web-build/renderer");
 
+// Workaround for a crash in <std::fs::DirBuilder>::_create
+pub fn mkdir_p<P: AsRef<Path>>(path: P) -> std::result::Result<(), String> {
+    let path = path.as_ref();
+    if path.exists() {
+        return Ok(());
+    }
+    let mut to_create: Vec<std::path::PathBuf> = Vec::new();
+    let mut cur: Option<&Path> = Some(path);
+    while let Some(p) = cur {
+        if p.exists() {
+            break;
+        }
+        to_create.push(p.to_path_buf());
+        cur = p.parent();
+    }
+    while let Some(p) = to_create.pop() {
+        if p.exists() {
+            continue;
+        }
+        if std::fs::create_dir(&p).is_err() && !p.exists() {
+            return Err(format!("failed to create directory: {}", p.display()));
+        }
+    }
+    Ok(())
+}
+
 pub fn is_emulator() -> bool {
     let text_addr = unsafe { skyline::hooks::getRegionAddress(skyline::hooks::Region::Text) as u64 };
     text_addr == 0x8504000 || text_addr == 0x80004000
@@ -76,7 +102,7 @@ pub fn check_for_self_updates() {
             return;
         }
         if std::fs::metadata("sd:/downloads").is_err() {
-            std::fs::create_dir_all("sd:/downloads");
+            let _ = mkdir_p("sd:/downloads");
         }
         match Curler::new().download(
             "https://github.com/techyCoder81/hdr-launcher-react/releases/latest/download/hdr-launcher.nro".to_owned(),
@@ -90,7 +116,6 @@ pub fn check_for_self_updates() {
                 return;
             },
         };
-        
         println!("finished get");
         match std::fs::copy("sd:/downloads/hdr-launcher.nro.dl", "sd:/atmosphere/contents/01006A800016E000/romfs/skyline/plugins/hdr-launcher.nro") {
             Ok(_) => println!("new update installed!"),
@@ -120,13 +145,11 @@ pub fn main() {
 
     println!("starting browser!");
     let browser_thread = thread::spawn(move || {
-        
         unsafe {
             extern "C" {
                 #[link_name = "_ZN2nn2oe24SetExpectedVolumeBalanceEff"]
                 fn set_volume_balance(applet: f32, system: f32);
             }
-    
             set_volume_balance(0.5, 1.0);
         }
 
@@ -162,7 +185,6 @@ pub fn main() {
         };
 
         let assets = manifest.as_object().unwrap();
-        
         let mut files: HashMap<String, &include_dir::File> = HashMap::new();
 
         // for each asset, add it to the webpage
@@ -183,7 +205,7 @@ pub fn main() {
         let folder_path = Path::new("sd:/atmosphere/contents")
                 .join(&format!("{:016X}", program_id))
                 .join(&format!("manual_html/html-document/{}.htdocs/", htdocs_dir));
-    
+
         // remove previous files if necessary
         if std::fs::metadata(&folder_path).is_ok() {
             std::fs::remove_dir_all(&folder_path);
@@ -200,9 +222,9 @@ pub fn main() {
             page.file(key, contents);
             let fullpath = Path::join(&folder_path, key);
             println!("adding file: {}", fullpath.display());
-            match fs::create_dir_all(fullpath.parent().unwrap()) {
+            match mkdir_p(fullpath.parent().unwrap()) {
                 Ok(_) => {},
-                Err(e) => {println!("Error while making file path: {:?}", e); return;}
+                Err(e) => {println!("Error while making file path: {}", e); return;}
             }
         }
 
@@ -288,7 +310,7 @@ pub fn main() {
                             Err(e) => return Err(format!("Error while removing existing {}: {}", &dest_mod, e.to_string()))
                         }
                     }
-                    
+
                     // create a new pr folder
                     match fs::create_dir(&dest) {
                         Ok(()) => {},
@@ -328,7 +350,7 @@ pub fn main() {
                                 Ok(_) => {},
                                 Err(e) => return Err(format!("Error while handling path: {}", path.display()))
                             },
-                            false => match std::fs::create_dir_all(pr_path) {
+                            false => match mkdir_p(&pr_path) {
                                 Ok(_) => {},
                                 Err(e) => return Err(format!("Error while handling path: {}", path.display()))
                             }
@@ -344,7 +366,6 @@ pub fn main() {
                 }
             })
             .start();
-        
     });
 
     // End thread so match can actually start

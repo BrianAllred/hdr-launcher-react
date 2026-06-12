@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
+use crate::mkdir_p;
 
 
 const FILE_PATH: &str = "sd:/ultimate/mods/hdr-stages/ui/param/database/ui_stage_db.prcxml";
@@ -90,9 +91,9 @@ pub fn new_temp_file() -> Result<String, String> {
         };
     }
 
-    match std::fs::create_dir_all(CONFIG_PATH) {
+    match mkdir_p(CONFIG_PATH) {
         Ok(()) => (),
-        Err(e) => return Err(format!("error creating config paths: {:?}", e))
+        Err(e) => return Err(format!("error creating config paths: {}", e))
     };
     return match std::fs::write(STAGING_FILE, "") {
         Ok(()) => Ok("file created successfully.".to_string()),
