@@ -5,6 +5,7 @@ import {
   BrowserWindow,
   MenuItemConstructorOptions,
 } from 'electron';
+import Config from './config';
 
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
@@ -198,8 +199,15 @@ export default class MenuBuilder {
         label: '&File',
         submenu: [
           {
-            label: '&Open',
-            accelerator: 'Ctrl+O',
+            label: '&Reset Launcher Config',
+            click: () => {
+              Config.resetConfig();
+              app.relaunch();
+              app.quit();
+            },
+          },
+          {
+            type: 'separator',
           },
           {
             label: '&Close',
