@@ -33,6 +33,22 @@ export default class Config {
     fs.writeFileSync(Config.configFilePath(), JSON.stringify(config));
   }
 
+  static resetConfig() {
+    const configPath = Config.configFilePath();
+    if (!fs.existsSync(configPath)) {
+      return;
+    }
+
+    let backupPath = `${configPath}.bak`;
+    let index = 1;
+    while (fs.existsSync(backupPath)) {
+      backupPath = `${configPath}.bak${index}`;
+      index += 1;
+    }
+
+    fs.renameSync(configPath, backupPath);
+  }
+
   static getRyuPath() {
     const config = Config.readFile();
     return config.ryuPath;
