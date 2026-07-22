@@ -1,6 +1,6 @@
 import { Backend } from './backend';
 
-type BooleanSetting = 'skip_launcher' | 'ignore_music' | 'enable_dev_tools' | 'unlock_menu_music';
+type BooleanSetting = 'skip_launcher' | 'ignore_music' | 'enable_dev_tools' | 'unlock_menu_music' | 'unlock_characters';
 
 const CONFIG_PATH = 'ultimate/hdr-config';
 

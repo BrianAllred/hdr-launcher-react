@@ -104,6 +104,22 @@ export default class OptionsMenu extends AbstractMenu<{
             )
           }
         />
+        <FocusCheckbox
+          className="smaller-main-button"
+          onClick={async () => {
+            const enabled = await config.getBoolean('unlock_characters');
+            await config.setBoolean('unlock_characters', !enabled);
+          }}
+          checkStatus={async () => {
+            return config.getBoolean('unlock_characters');
+          }}
+          text={'Unlock Characters (!)\u00A0'}
+          onFocus={() =>
+            this.props.setInfo(
+              'WARNING: Potentially bannable operation!'
+            )
+          }
+        />
         {super.render()}
       </div>
     );
